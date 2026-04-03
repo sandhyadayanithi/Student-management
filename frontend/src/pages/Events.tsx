@@ -164,12 +164,6 @@ const Events = () => {
             >
               + Add Event
             </button>
-            <Link
-              to="/"
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
-            >
-              Switch Account
-            </Link>
           </div>
         </div>
 

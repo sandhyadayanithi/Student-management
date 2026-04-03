@@ -7,6 +7,17 @@ const STUDENT_API_URL = 'http://localhost:8081/students';
 const EVENT_API_URL = 'http://localhost:8082/events';
 const FACULTY_API_URL = 'http://localhost:8083/faculty';
 
+const parseMaybeJson = (text: string) => {
+  if (!text) {
+    return {};
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+};
+
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = getToken();
   const headers = new Headers(options.headers || {});
@@ -112,5 +123,31 @@ export const deleteEvent = async (id: string, facultyId: string) => {
   }
   
   const text = await response.text();
-  return text ? JSON.parse(text) : {};
+  return parseMaybeJson(text);
+};
+
+export const updateStudentEvent = async (id: string, rollNumber: string, event: AppEvent) => {
+  return fetchWithAuth(`${EVENT_API_URL}/student/update/${id}/${rollNumber}`, {
+    method: 'PUT',
+    body: JSON.stringify(event),
+  });
+};
+
+export const deleteStudentEvent = async (id: string, rollNumber: string) => {
+  const token = getToken();
+  const response = await fetch(`${EVENT_API_URL}/student/delete/${id}/${rollNumber}`, {
+    method: 'DELETE',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      window.location.href = '/';
+    }
+    const errorText = await response.text();
+    throw new Error(errorText || `API Error: ${response.status}`);
+  }
+
+  const text = await response.text();
+  return parseMaybeJson(text);
 };

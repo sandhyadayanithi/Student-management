@@ -5,6 +5,7 @@ import com.example.studentservice.StudentService.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -23,5 +24,10 @@ public class StudentController {
     @PostMapping("/login")
     public Optional<StudentModel> login(@RequestBody StudentModel student) {
         return service.login(student.getEmail(), student.getPassword());
+    }
+
+    @GetMapping
+    public List<StudentModel> getAllStudents() {
+        return service.getAllStudents();
     }
 }

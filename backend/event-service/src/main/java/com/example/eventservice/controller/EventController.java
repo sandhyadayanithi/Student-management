@@ -42,10 +42,25 @@ public class EventController {
         return service.updateEvent(id, event, facultyId);
     }
 
+    // UPDATE (STUDENT-OWNED EXTERNAL EVENT)
+    @PutMapping("/student/update/{id}/{rollNumber}")
+    public Event updateForStudent(@PathVariable String id,
+                                  @PathVariable String rollNumber,
+                                  @RequestBody Event event) {
+        return service.updateEventForStudent(id, event, rollNumber);
+    }
+
     // DELETE
     @DeleteMapping("/delete/{id}/{facultyId}")
     public String delete(@PathVariable String id,
                          @PathVariable String facultyId) {
         return service.deleteEvent(id, facultyId);
+    }
+
+    // DELETE (STUDENT-OWNED EXTERNAL EVENT)
+    @DeleteMapping("/student/delete/{id}/{rollNumber}")
+    public String deleteForStudent(@PathVariable String id,
+                                   @PathVariable String rollNumber) {
+        return service.deleteEventForStudent(id, rollNumber);
     }
 }

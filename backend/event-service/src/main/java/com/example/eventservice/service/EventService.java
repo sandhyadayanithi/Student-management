@@ -81,13 +81,9 @@ public class EventService {
         return repo.save(event);
     }
 
-    // UPDATE (STUDENT-OWNED EXTERNAL EVENT)
+    // UPDATE (STUDENT-OWNED EVENT)
     public Event updateEventForStudent(String id, Event updated, String rollNumber) {
         Event event = repo.findById(id).orElseThrow();
-
-        if (!isBlank(event.getFacultyId())) {
-            throw new RuntimeException("Unauthorized");
-        }
 
         if (!event.getRollNumber().equals(rollNumber)) {
             throw new RuntimeException("Unauthorized");
@@ -113,13 +109,9 @@ public class EventService {
         return "Deleted successfully";
     }
 
-    // DELETE (STUDENT-OWNED EXTERNAL EVENT)
+    // DELETE (STUDENT-OWNED EVENT)
     public String deleteEventForStudent(String id, String rollNumber) {
         Event event = repo.findById(id).orElseThrow();
-
-        if (!isBlank(event.getFacultyId())) {
-            throw new RuntimeException("Unauthorized");
-        }
 
         if (!event.getRollNumber().equals(rollNumber)) {
             throw new RuntimeException("Unauthorized");

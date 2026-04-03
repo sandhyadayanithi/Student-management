@@ -24,15 +24,15 @@ const StudentLogin = () => {
 
     try {
       const response = await loginStudent(formData);
-      
-      // Handle both { token, user } OR direct { rollNumber, name } formats
-      const token = response?.token || response?.jwt || response?.accessToken || "temp-student-token";
-      const user = response?.user || response;
-      
-      if (user && user.rollNumber) {
+
+      const token = response?.token;
+      const user = response?.user;
+      const role = response?.role || 'student';
+
+      if (token && user && user.rollNumber) {
         setToken(token);
         setUserInfo(user);
-        setUserRole('student');
+        setUserRole(role);
         navigate(`/student/events/${user.rollNumber}`);
       } else {
         console.error("Login response:", response);

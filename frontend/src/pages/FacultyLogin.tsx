@@ -24,15 +24,15 @@ const FacultyLogin = () => {
 
     try {
       const response = await loginFaculty(formData);
-      
-      // Handle both { token, user } OR direct { facultyId, name } formats
-      const token = response?.token || response?.jwt || response?.accessToken || "temp-faculty-token";
-      const user = response?.user || response;
-      
-      if (user && (user.facultyId || user.email)) {
+
+      const token = response?.token;
+      const user = response?.user;
+      const role = response?.role || 'faculty';
+
+      if (token && user && (user.facultyId || user.email)) {
         setToken(token);
         setUserInfo(user);
-        setUserRole('faculty');
+        setUserRole(role);
         navigate('/faculty/dashboard');
       } else {
         console.error("Login response:", response);

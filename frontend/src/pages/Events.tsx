@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { addEvent, deleteEvent, deleteStudentEvent, getStudentEvents, updateEvent, updateStudentEvent } from '../services/api';
+import { addEvent, deleteStudentEvent, getStudentEvents, updateStudentEvent } from '../services/api';
 import { getUserInfo } from '../services/auth';
 import Navbar from '../components/Navbar';
 import EventCard from '../components/EventCard';
@@ -92,13 +92,8 @@ const Events = () => {
   const handleDelete = async (id: string, event: AppEvent) => {
     if (!window.confirm("Are you sure you want to delete this event?")) return;
     try {
-      if (isExternalEvent(event)) {
-        if (!event.rollNumber) throw new Error("Roll number missing for delete");
-        await deleteStudentEvent(id, event.rollNumber);
-      } else {
-        if (!event.facultyId) throw new Error("Faculty ID missing for delete");
-        await deleteEvent(id, event.facultyId);
-      }
+      if (!event.rollNumber) throw new Error("Roll number missing for delete");
+      await deleteStudentEvent(id, event.rollNumber);
       setLoading(true);
       fetchEvents();
     } catch (err: any) {
@@ -128,13 +123,8 @@ const Events = () => {
         await addEvent(payload);
       } else {
         if (!formData.id) throw new Error("Event ID missing for update");
-        if (isExternalEvent(formData)) {
-          if (!formData.rollNumber) throw new Error("Roll number missing for update");
-          await updateStudentEvent(formData.id, formData.rollNumber, { ...formData, facultyId: '' });
-        } else {
-          if (!formData.facultyId) throw new Error("Faculty ID missing for update");
-          await updateEvent(formData.id, formData.facultyId, formData);
-        }
+        if (!formData.rollNumber) throw new Error("Roll number missing for update");
+        await updateStudentEvent(formData.id, formData.rollNumber, formData);
       }
       setIsModalOpen(false);
       setLoading(true);

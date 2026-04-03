@@ -47,6 +47,17 @@ const FacultyDashboard = () => {
     }
   };
 
+  const isPastEvent = (dateValue: string) => {
+    const eventDate = new Date(dateValue);
+    if (Number.isNaN(eventDate.getTime())) {
+      return false;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    return eventDate < today;
+  };
+
   useEffect(() => {
     fetchEvents();
   }, [facultyId, selectedMonth]);
@@ -146,10 +157,32 @@ const FacultyDashboard = () => {
             <p className="mt-1 text-sm text-gray-500">There are no events registered for {selectedMonth}.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event) => (
-              <EventCard key={event.id} event={event} onEdit={handleEdit} onDelete={handleDelete} />
-            ))}
+          <div className="space-y-10">
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Events</h2>
+              {events.filter((event) => !isPastEvent(event.date)).length === 0 ? (
+                <div className="text-sm text-gray-500">No upcoming events.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {events.filter((event) => !isPastEvent(event.date)).map((event) => (
+                    <EventCard key={event.id} event={event} variant="faculty" onEdit={handleEdit} onDelete={handleDelete} />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Past Events</h2>
+              {events.filter((event) => isPastEvent(event.date)).length === 0 ? (
+                <div className="text-sm text-gray-500">No past events.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {events.filter((event) => isPastEvent(event.date)).map((event) => (
+                    <EventCard key={event.id} event={event} variant="faculty" onEdit={handleEdit} onDelete={handleDelete} />
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         )}
       </main>

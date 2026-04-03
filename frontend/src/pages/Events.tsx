@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { addEvent, deleteStudentEvent, getStudentEvents, updateStudentEvent } from '../services/api';
+import { addEvent, deleteEvent, deleteStudentEvent, getStudentEvents, updateEvent, updateStudentEvent } from '../services/api';
 import { getUserInfo } from '../services/auth';
 import Navbar from '../components/Navbar';
 import EventCard from '../components/EventCard';
@@ -18,6 +18,7 @@ const Events = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [isExternal, setIsExternal] = useState(false);
   const [formData, setFormData] = useState<AppEvent>({
     studentName: defaultStudentName,
     rollNumber: defaultRollNumber,
@@ -46,6 +47,17 @@ const Events = () => {
 
   const isExternalEvent = (event: AppEvent) => !event.facultyId || event.facultyId.trim() === '';
 
+  const isPastEvent = (dateValue: string) => {
+    const eventDate = new Date(dateValue);
+    if (Number.isNaN(eventDate.getTime())) {
+      return false;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    return eventDate < today;
+  };
+
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
@@ -57,6 +69,7 @@ const Events = () => {
 
   const handleAddClick = () => {
     setModalMode('add');
+    setIsExternal(false);
     setFormData({
       studentName: defaultStudentName,
       rollNumber: defaultRollNumber,
@@ -70,27 +83,22 @@ const Events = () => {
   };
 
   const handleEdit = (event: AppEvent) => {
-    if (!isExternalEvent(event)) {
-      alert("You can only edit events without a faculty.");
-      return;
-    }
     setModalMode('edit');
+    setIsExternal(isExternalEvent(event));
     setFormData(event);
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string, event: AppEvent) => {
-    if (!isExternalEvent(event)) {
-      alert("You can only delete events without a faculty.");
-      return;
-    }
-    if (!event.rollNumber) {
-      alert("Cannot delete this event because roll number is missing.");
-      return;
-    }
     if (!window.confirm("Are you sure you want to delete this event?")) return;
     try {
-      await deleteStudentEvent(id, event.rollNumber);
+      if (isExternalEvent(event)) {
+        if (!event.rollNumber) throw new Error("Roll number missing for delete");
+        await deleteStudentEvent(id, event.rollNumber);
+      } else {
+        if (!event.facultyId) throw new Error("Faculty ID missing for delete");
+        await deleteEvent(id, event.facultyId);
+      }
       setLoading(true);
       fetchEvents();
     } catch (err: any) {
@@ -102,16 +110,31 @@ const Events = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleExternalToggle = (checked: boolean) => {
+    setIsExternal(checked);
+    if (checked) {
+      setFormData((prev) => ({ ...prev, facultyId: '' }));
+    }
+  };
+
   const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (modalMode === 'add') {
-        await addEvent(formData);
+        if (!isExternal && !formData.facultyId.trim()) {
+          throw new Error("Faculty ID is required for faculty-included events");
+        }
+        const payload = isExternal ? { ...formData, facultyId: '' } : formData;
+        await addEvent(payload);
       } else {
         if (!formData.id) throw new Error("Event ID missing for update");
-        if (!isExternalEvent(formData)) throw new Error("Only external events can be edited by students");
-        if (!formData.rollNumber) throw new Error("Roll number missing for update");
-        await updateStudentEvent(formData.id, formData.rollNumber, formData);
+        if (isExternalEvent(formData)) {
+          if (!formData.rollNumber) throw new Error("Roll number missing for update");
+          await updateStudentEvent(formData.id, formData.rollNumber, { ...formData, facultyId: '' });
+        } else {
+          if (!formData.facultyId) throw new Error("Faculty ID missing for update");
+          await updateEvent(formData.id, formData.facultyId, formData);
+        }
       }
       setIsModalOpen(false);
       setLoading(true);
@@ -178,15 +201,44 @@ const Events = () => {
             <p className="mt-1 text-sm text-gray-500">You haven't registered for any events yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event, index) => (
-              <EventCard
-                key={index}
-                event={event}
-                onEdit={isExternalEvent(event) ? handleEdit : undefined}
-                onDelete={isExternalEvent(event) ? (id) => handleDelete(id, event) : undefined}
-              />
-            ))}
+          <div className="space-y-10">
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Events</h2>
+              {events.filter((event) => !isPastEvent(event.date)).length === 0 ? (
+                <div className="text-sm text-gray-500">No upcoming events.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {events.filter((event) => !isPastEvent(event.date)).map((event, index) => (
+                    <EventCard
+                      key={index}
+                      event={event}
+                      variant="student"
+                      onEdit={handleEdit}
+                      onDelete={(id) => handleDelete(id, event)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Past Events</h2>
+              {events.filter((event) => isPastEvent(event.date)).length === 0 ? (
+                <div className="text-sm text-gray-500">No past events.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {events.filter((event) => isPastEvent(event.date)).map((event, index) => (
+                    <EventCard
+                      key={index}
+                      event={event}
+                      variant="student"
+                      onEdit={handleEdit}
+                      onDelete={(id) => handleDelete(id, event)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         )}
       </main>
@@ -198,6 +250,24 @@ const Events = () => {
               {modalMode === 'add' ? 'Add Registration' : 'Edit Registration'}
             </h3>
             <form onSubmit={handleModalSubmit} className="space-y-4">
+              {modalMode === 'add' && (
+                <div className="flex items-center justify-between border border-gray-200 rounded-md px-4 py-3 bg-gray-50">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">External Event</p>
+                    <p className="text-xs text-gray-500">No faculty approval required</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={isExternal}
+                      onChange={(e) => handleExternalToggle(e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-indigo-600 transition"></div>
+                    <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></span>
+                  </label>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Student Name</label>
                 <input
@@ -220,6 +290,19 @@ const Events = () => {
                   className={`mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${lockStudentFields ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
               </div>
+              {!isExternal && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Faculty ID</label>
+                  <input
+                    name="facultyId"
+                    required
+                    value={formData.facultyId}
+                    onChange={handleChange}
+                    readOnly={modalMode === 'edit'}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Event Name</label>
                 <input name="eventName" required value={formData.eventName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />

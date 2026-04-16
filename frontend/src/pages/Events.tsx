@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { addEvent, deleteStudentEvent, getStudentEvents, updateStudentEvent } from '../services/api';
 import { getUserInfo } from '../services/auth';
 import Navbar from '../components/Navbar';
